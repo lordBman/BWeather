@@ -19,6 +19,9 @@ jobs:
       - name: Install npm dependencies
         run: |
           npm install
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
       - name: Build Android Release
         run: |
           cd android && ./gradlew assembleRelease
@@ -27,3 +30,5 @@ jobs:
         with:
           name: app-release.apk
           path: android/app/build/outputs/apk/release/
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
