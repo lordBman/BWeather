@@ -1,45 +1,52 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+// App.tsx
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React, { useEffect } from 'react';
+import { StatusBar } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import RNBootSplash from 'react-native-bootsplash';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+import { ErrorBoundary } from './src/components/common/ErrorBoundary';
+import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import { useLocation } from './src/hooks/useLocation';
+
+function Root() {
+  const { isDark } = useTheme();
+  const { resolveDeviceLocation, permissionStatus } = useLocation();
+
+  useEffect(() => {
+    // Resolve on startup so the native prompt appears whenever permission is
+    // not granted. Permanently denied permissions are handled by Settings.
+    if (permissionStatus !== 'granted' && permissionStatus !== 'permanently_denied') {
+      resolveDeviceLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    RNBootSplash.hide({ fade: true });
+  }, []);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <NavigationContainer>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <AppNavigator />
+    </NavigationContainer>
   );
 }
 
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
+export default function App() {
   return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <ThemeProvider>
+            <Root />
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-
-export default App;
