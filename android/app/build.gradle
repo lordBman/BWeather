@@ -82,8 +82,8 @@ android {
         applicationId "com.bsoft.bweather"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode project.findProperty("versionCode")?.toInteger() ?: 1
+        versionName project.findProperty("versionName") ?: "1.0.0"
     }
     signingConfigs {
         debug {
@@ -92,12 +92,12 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        if (System.getenv('ANDROID_KEYSTORE_PATH')) {
+        if (System.getenv('bweather.keystore')) {
             release {
-                storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))
-                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('ANDROID_KEY_ALIAS')
-                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+                storeFile file(System.getenv('bweather.keystore'))
+                storePassword System.getenv('SIGNING_STORE_PASSWORD')
+                keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD')
             }
         }
     }
