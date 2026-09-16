@@ -1,6 +1,6 @@
 // src/screens/FavoritesScreen.tsx
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,12 +9,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFavorites } from '../hooks/useFavorites';
 import { useLocation } from '../hooks/useLocation';
 import { useTheme } from '../theme/ThemeProvider';
+import { useResponsive } from '../hooks/useResponsive';
 import { Location } from '../types/location';
 import { RootStackParamList } from '../navigation/types';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
 import HeartOutline from '../icons/heart-outline';
 import MapMarker from '../icons/map-marker';
+import CrosshairsGps from '../icons/crosshairs-gps';
 import Close from '../icons/close';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -23,14 +25,31 @@ export function FavoritesScreen() {
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
   const { favorites, removeFavorite } = useFavorites();
-  const { selectLocation } = useLocation();
+  const { selectLocation, currentLocation, permissionStatus } = useLocation();
+  const { isTablet } = useResponsive();
 
   const handleSelect = (location: Location) => {
     selectLocation(location);
     navigation.navigate('Tabs', { screen: 'Home' });
   };
 
-  if (favorites.length === 0) {
+  // Combine the list to inject Current Location if permission is granted and available
+  const listData = useMemo(() => {
+    const data: (Location & { isCurrentLocation?: boolean })[] = [...favorites];
+    if (permissionStatus === 'granted' && currentLocation) {
+      // Avoid adding it twice if already in list data by some chance, though it has a unique format
+      const hasCurrent = data.some((item) => item.id === currentLocation.id || item.isCurrentLocation);
+      if (!hasCurrent) {
+        data.unshift({
+          ...currentLocation,
+          isCurrentLocation: true,
+        });
+      }
+    }
+    return data;
+  }, [favorites, currentLocation, permissionStatus]);
+
+  if (listData.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.surfaceAlt }]} edges={['top']}>
         <View style={styles.emptyState}>
@@ -54,39 +73,51 @@ export function FavoritesScreen() {
     );
   }
 
+  const columns = isTablet ? 2 : 1;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.surfaceAlt }]} edges={['top']}>
       <Text style={[typography.h1, styles.title, { color: colors.text }]}>Favorites</Text>
       <FlatList
-        data={favorites}
-        keyExtractor={(item) => item.id}
+        key={`favorites-list-cols-${columns}`}
+        data={listData}
+        keyExtractor={(item, index) => item.id || `fav-${index}`}
+        numColumns={columns}
         contentContainerStyle={styles.list}
+        columnWrapperStyle={isTablet ? styles.columnWrapper : undefined}
         renderItem={({ item }) => (
-          <View style={[styles.row, { backgroundColor: colors.surface }]}>
+          <View style={[styles.row, { backgroundColor: colors.surface, flex: isTablet ? 0.5 : 1 }]}>
             <TouchableOpacity
               style={styles.rowMain}
               onPress={() => handleSelect(item)}
               accessibilityRole="button"
               accessibilityLabel={`Show weather for ${item.name}`}
             >
-              <MapMarker width={18} height={18} color={colors.primary} />
+              {item.isCurrentLocation ? (
+                <CrosshairsGps width={18} height={18} color={colors.secondary} />
+              ) : (
+                <MapMarker width={18} height={18} color={colors.primary} />
+              )}
               <View style={styles.textBlock}>
-                <Text style={[typography.bodyBold, { color: colors.text }]}>{item.name}</Text>
-                {!!item.country && (
-                  <Text style={[typography.caption, { color: colors.secondaryText }]}>
-                    {item.country}
-                  </Text>
-                )}
+                <Text style={[typography.bodyBold, { color: colors.text }]}>
+                  {item.name}
+                </Text>
+                <Text style={[typography.caption, { color: colors.secondaryText }]}>
+                  {item.isCurrentLocation ? 'Device GPS' : item.country || ''}
+                </Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => removeFavorite(item.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${item.name} from favorites`}
-              style={styles.removeButton}
-            >
-              <Close width={18} height={18} color={colors.secondaryText} />
-            </TouchableOpacity>
+
+            {!item.isCurrentLocation && (
+              <TouchableOpacity
+                onPress={() => removeFavorite(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${item.name} from favorites`}
+                style={styles.removeButton}
+              >
+                <Close width={18} height={18} color={colors.secondaryText} />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       />
@@ -98,6 +129,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   title: { paddingHorizontal: spacing.md, marginBottom: spacing.sm },
   list: { padding: spacing.md, gap: spacing.sm },
+  columnWrapper: { gap: spacing.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

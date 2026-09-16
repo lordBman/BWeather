@@ -3,6 +3,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useResponsive } from '../../hooks/useResponsive';
 import { spacing, radius } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
@@ -14,10 +15,13 @@ interface StatCardProps extends React.PropsWithChildren {
 
 export function StatCard({ label, value, subvalue, children }: StatCardProps) {
   const { colors } = useTheme();
+  const { isTablet, isLandscape } = useResponsive();
+
+  const dynamicMinWidth = isTablet && !isLandscape ? '22%' : '45%';
 
   return (
     <View
-      style={[styles.card, { backgroundColor: colors.surface }]}
+      style={[styles.card, { backgroundColor: colors.surface, minWidth: dynamicMinWidth }]}
       accessible
       accessibilityLabel={`${label}: ${value}${subvalue ? `, ${subvalue}` : ''}`}
     >
@@ -38,7 +42,6 @@ export function StatCard({ label, value, subvalue, children }: StatCardProps) {
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minWidth: '45%',
     padding: spacing.md,
     borderRadius: radius.medium,
   },
