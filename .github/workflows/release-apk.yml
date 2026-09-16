@@ -75,7 +75,7 @@ jobs:
       
       - name: Build Android Release
         run: |
-          chmod +x android/gradlew && android/gradlew assembleRelease
+          cd android && chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Prepare Release Files
         shell: bash
